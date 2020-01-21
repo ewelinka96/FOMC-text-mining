@@ -58,7 +58,7 @@ https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
 ```{r}
 # Loading scrapped statements (from 2006 to 2018)
 # DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
-DATA_DIR = "C:/Users/esobolewska/Documents/FOMC-text-mining/Statements"
+DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
@@ -111,15 +111,13 @@ stopwords <- stopwords("en")
 ```
 
 ```{r}
-system.time (
-  corpus_clean <- corpus_all %>% 
+corpus_clean <- corpus_all %>% 
     tm_map(tolower) %>%
     tm_map(removeWords, stopwords) %>% 
     tm_map(removePunctuation) %>%
-    tm_map(removeNumbers)  %>%
     tm_map(stripWhitespace) %>% 
+    tm_map(removeNumbers) %>% 
     tm_map(PlainTextDocument)
-)
 ```
 
 ```{r}
@@ -142,10 +140,12 @@ df_corpus <- df_corpus %>% mutate(doc_id = 1:n())
 statements_clean <- statements %>% 
   mutate(cleaned_text = df_corpus$text)
 
+# clened_text
+
 count_cleaned_word <- statements_clean %>%
   unnest_tokens(word_count, cleaned_text) %>%
   count(ID, word_count, sort = T) %>% 
-  group_by(ID) %>% 
+  group_by(ID) %>%
   summarize(word_cleaned_count = sum(n))
 
 statements_clean_count <- left_join(statements_clean, count_cleaned_word, by = 'ID')
@@ -178,7 +178,7 @@ ggplotly(myplot)
 library(lubridate)
 statements_words <- statements_clean_count %>%
   mutate(year = year(Date)) %>% 
-  unnest_tokens(word_count, Text) %>%
+  unnest_tokens(word_count, cleaned_text) %>%
   count(year, word_count, sort = T)
 
 statements_words
@@ -212,6 +212,9 @@ ggplot(pd, aes(order, tf_idf, fill = year)) +
   coord_flip()
 ```
 
+```{r}
+statements_words %>% filter(., year == '2014')
+```
 
 
 
