@@ -170,9 +170,48 @@ ggplotly(myplot)
 ```
 
 
+## tfidf
+
+```{r}
+library(lubridate)
+statements_words <- statements_clean_count %>%
+  mutate(year = year(Date)) %>% 
+  unnest_tokens(word_count, Text) %>%
+  count(year, word_count, sort = T)
+
+statements_words
+```
+
+```{r}
+statements_words <- statements_words %>%
+  bind_tf_idf(word_count, year, n)
+
+statements_words
+```
+
+```{r}
+statements_words %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word_count, levels = rev(unique(word_count)))) %>% 
+  group_by(year) %>% 
+  top_n(15) %>% 
+  ungroup() %>%
+  arrange(word1, word_count) %>%
+  mutate(order = row_number()) %>% 
+  ggplot(aes(x=reorder(word, -tf_idf, mean), y=tf_idf, fill = year)) +
+  geom_bar(show.legend = FALSE, stat = "identity") +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~year, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+
+
+
 ## Wordclouds
 
 ```{r}
+library(wordcloud)
 dtm <- TermDocumentMatrix(corpus_clean)
 m <- as.matrix(dtm)
 v <- sort(rowSums(m),decreasing=TRUE)
