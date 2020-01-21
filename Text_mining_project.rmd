@@ -57,7 +57,9 @@ https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
 
 ```{r}
 # Loading scrapped statements (from 2006 to 2018)
-DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
+# DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
+DATA_DIR = "C:/Users/esobolewska/Documents/FOMC-text-mining/Statements"
+
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
 fomc_2008 <- readtext(paste0(DATA_DIR, "/2008/*"))
@@ -189,19 +191,24 @@ statements_words <- statements_words %>%
 statements_words
 ```
 
-```{r}
-statements_words %>%
+```{r, fig.height=15}
+pd = statements_words %>%
   arrange(desc(tf_idf)) %>%
   mutate(word = factor(word_count, levels = rev(unique(word_count)))) %>% 
   group_by(year) %>% 
-  top_n(15) %>% 
+  top_n(10) %>% 
   ungroup() %>%
-  arrange(word1, word_count) %>%
-  mutate(order = row_number()) %>% 
-  ggplot(aes(x=reorder(word, -tf_idf, mean), y=tf_idf, fill = year)) +
+  arrange(year, tf_idf) %>%
+  mutate(order = row_number()) 
+
+ggplot(pd, aes(order, tf_idf, fill = year)) +
   geom_bar(show.legend = FALSE, stat = "identity") +
   labs(x = NULL, y = "tf-idf") +
-  facet_wrap(~year, ncol = 2, scales = "free") +
+  facet_wrap(~year, ncol = 3, scales = "free") +
+  scale_x_continuous(
+    breaks = pd$order,
+    labels = pd$word,
+    expand = c(0,0)) +
   coord_flip()
 ```
 
