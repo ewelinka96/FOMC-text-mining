@@ -157,10 +157,17 @@ count_word <- statements_clean_count %>%
 statements_final <- left_join(statements_clean_count, count_word, by = 'ID')
 ```
 
-
-
 ## Word counts over time
 
+```{r}
+library(plotly)
+myplot <- statements_final %>% 
+              select(word_count, Date) %>% 
+              ggplot() +
+              geom_line(aes(x=Date, y= word_count)) + 
+              theme_minimal()
+ggplotly(myplot)
+```
 
 
 ## Wordclouds
