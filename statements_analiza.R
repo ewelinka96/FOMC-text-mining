@@ -1,10 +1,11 @@
+
 # Loading packages
 
-install.packages("tidytext")
-install.packages("SentimentAnalysis")
-install.packages("readtext")
-install.packages("read_excel")
-install.packages("textstem")
+# install.packages("tidytext")
+# install.packages("SentimentAnalysis")
+# install.packages("readtext")
+# install.packages("read_excel")
+# install.packages("textstem")
 library(tidyverse)
 library(tidytext)
 library(SentimentAnalysis)
@@ -14,7 +15,7 @@ library(dplyr)
 
 # Loading scrapped statements (from 2006 to 2019)
 
-DATA_DIR <- "C:/Users/esobolewska/Documents/Text mining project/Statements"
+DATA_DIR <- "C:/Users/esobolewska/Documents/FOMC-text-mining/Statements"
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
 fomc_2008 <- readtext(paste0(DATA_DIR, "/2008/*"))
@@ -108,6 +109,9 @@ tokens <- statements_final %>%
 
 
 
+
+
+# Topic Modelling ---------------------------------------------------------
 
 # topic modelling - do poprawy na pewno, bo słabo wychodzi
 library(tm)
