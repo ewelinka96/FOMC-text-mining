@@ -293,47 +293,104 @@ tokens <- statements_final %>%
   unnest_tokens(word, lemma_text) 
 ```
 
+
 ## Topic modelling
 
-```{r}
-# topic modelling - do poprawy na pewno, bo słabo wychodzi
 
-# install.packages("topicmodels")
+```{r,include=FALSE}
+library(topicmodels)
+library(tidytext)
 
-# Creating a Term document Matrix
 tdm = DocumentTermMatrix(corpus_clean) 
+ap_lda <- LDA(tdm, k = 5, control = list(seed = 1234))
+ap_topics <- tidy(ap_lda, matrix = "beta")
+```
 
-# create tf-idf matrix
-term_tfidf <- tapply(tdm$v/row_sums(tdm)[tdm$i], tdm$j, mean) * log2(nDocs(tdm)/col_sums(tdm > 0))
-summary(term_tfidf)
-tdm <- tdm[,term_tfidf >= 0.05]
-tdm <- tdm[row_sums(tdm) > 0,]
-summary(col_sums(tdm))
-# finding best K 
-best.model <- lapply(seq(2, 50, by = 1), function(d){LDA(tdm, d)})
-best.model.logLik <- as.data.frame(as.matrix(lapply(best.model, logLik)))
-# calculating LDA
-k = 5 # number of topics
-SEED = 112 # number of documents 
-CSC_TM <-list(VEM = LDA(tdm, k = k, 
-                        control = list(seed = SEED)), 
-              VEM_fixed = LDA(tdm, k = k,
-                              control = list(estimate.alpha = FALSE, seed = SEED)),
-              Gibbs = LDA(tdm, k = k, method = "Gibbs",
-                          control = list(seed = SEED, burnin = 1000, thin = 100, iter = 1000)),
-              CTM = CTM(tdm, k = k,
-                        control = list(seed = SEED,
-                                       var = list(tol = 10^-4), 
-                                       em = list(tol = 10^-3))))
+```{r}
+ap_top_terms <- ap_topics %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
 
-sapply(CSC_TM[1:2], slot, "alpha")
-sapply(CSC_TM, function(x) mean(apply(posterior(x)$topics, 1, function(z) sum(z*log(z)))))
-Topic <- topics(CSC_TM[["VEM"]], 1)
-Terms <- terms(CSC_TM[["VEM"]], 8)
-Terms
+ap_top_terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip() +
+  scale_x_reordered()
 ```
 
 
+```{r, include=FALSE}
+library(tidytext)
+library(stringr)
+library(tidyr)
+
+by_chapter <- statements_clean %>%
+  group_by(ID)
+ 
+by_chapter_word <- by_chapter %>%
+  unnest_tokens(word, cleaned_text)
+
+word_counts <- by_chapter_word %>%
+  anti_join(stop_words) %>%
+  count(ID, word, sort = TRUE)
+
+chapters_dtm <- word_counts %>%
+  cast_dtm(ID, word, n)
+
+chapters_lda <- LDA(chapters_dtm, k = 4, control = list(seed = 1234))
+
+
+chapters_lda_td <- tidy(chapters_lda)
+
+
+chapters_lda_gamma <- tidy(chapters_lda, matrix = "gamma")
+```
+
+```{r, include=FALSE}
+topic_1 = chapters_lda_gamma %>% filter(., topic=='1')
+topic_2 = chapters_lda_gamma %>% filter(., topic=='2')
+topic_3 = chapters_lda_gamma %>% filter(., topic=='3')
+topic_4 = chapters_lda_gamma %>% filter(., topic=='4')
+topic_1 = topic_1 %>% rename('topic1' = 'gamma')
+topic_2 = topic_2 %>% rename('topic2' = 'gamma')
+topic_3 = topic_3 %>% rename('topic3' = 'gamma')
+topic_4 = topic_4 %>% rename('topic4' = 'gamma')
+
+
+statements_topics = merge(statements_clean, topic_1, by.x = "ID", by.y = "document")
+statements_topics = merge(statements_topics, topic_2, by.x = "ID", by.y = "document")
+statements_topics = merge(statements_topics, topic_3, by.x = "ID", by.y = "document")
+statements_topics = merge(statements_topics, topic_4, by.x = "ID", by.y = "document")
+
+drops <- c("topic.x","topic.y")
+statements_topics = statements_topics[ , !(names(statements_topics) %in% drops)]
+
+```
+
+```{r}
+library(viridis)
+dupa <- ggplot(statements_topics, aes(x=Date)) + 
+  geom_line(aes(y=topic1), fill =viridis(10)[2]) +
+  geom_line(aes(y=topic2),  color=viridis(10)[5]) +
+  geom_line(aes(y=topic3),  color=viridis(10)[10]) +
+  geom_line(aes(y=topic4))
+
+ggplotly(dupa)
+```
+
+
+```{r}
+ggplot(statements_topics) + 
+  geom_density( aes(x = topic1, y = ..scaled..), fill = "red", alpha = 0.5) +
+  geom_density( aes(x = topic2, y = ..scaled..), fill = "green", alpha = 0.5) +
+  geom_density( aes(x = topic3, y = ..scaled..), fill = "blue", alpha = 0.5) +
+  geom_density( aes(x = topic4, y = ..scaled..), fill = "yellow", alpha = 0.5) 
+
+```
 
 
 [^fomc]: Source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
