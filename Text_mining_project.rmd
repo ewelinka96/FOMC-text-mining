@@ -12,7 +12,7 @@ output:
 ---
 
 
-```{r warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE}
 # Loading packages
 library(readtext)
 library(readxl)
@@ -123,11 +123,6 @@ Below can be seen examples of the statements after above cleaning steps.
 as.character(corpus_clean[[1]]) 
 ```
 
-```{r}
-# example statement after cleaning
-as.character(corpus_clean[[2]]) 
-```
-
 In order to ease operations on the corpus, we modify it into a data frame. 
 
 ```{r}
@@ -147,7 +142,7 @@ statements_clean <- statements %>%
 ```
 
 ```{r}
-# clened_text
+# cleaned_text
 count_cleaned_word <- statements_clean %>%
   unnest_tokens(word_count, cleaned_text) %>%
   count(ID, word_count, sort = T) %>% 
@@ -167,11 +162,9 @@ count_word <- statements_clean_count %>%
 statements_final <- left_join(statements_clean_count, count_word, by = 'ID')
 ```
 
-
-
 ## Word counts over time
 
-(...)
+On the plot below we can see line plots of word counts over time, one for statmenets before and one after cleaning. The number has increased over time for both types until 2014 when the number started to decrease. The proportion of number of cleaned words to number of total words is quite constant and oscillates around 60%.
 
 ```{r}
 library(plotly)
@@ -198,7 +191,9 @@ ggplotly(myplot)
 
 ## Zipf's law
 
-```{r, include=False}
+The Zipf's law in context of text mining, states that the frequency of a word is inversely proportional to it's ordered rank. We decided to check the accuracy of the law empirically on our dataset. Below is a dataset with included zipf's frequency.
+
+```{r}
 library(ggplot2)
 library(dplyr)
 library(lubridate)
@@ -222,6 +217,7 @@ word_count <- word_count %>%
 word_count
 ```
 
+Additionally we decided to present the visualisation on a point plot. Based on this visualisation we decided to remove words with the highest and lowest values, setting the cutoff to ranks 10 and 300 leaving only words in between.
 
 ```{r}
  p1 <- ggplot(word_count, 
@@ -242,30 +238,19 @@ ggplotly(p1, tooltip = "text")
 ```{r}
 large_zipf <- as.vector(word_count$word[1:10])
 small_zipf <- as.vector(word_count$word[300:1174])
-```
-
-```{r}
 corpus_clean <- corpus_clean %>% tm_map(removeWords, large_zipf)
 corpus_clean <- corpus_clean %>% tm_map(removeWords, small_zipf)
-```
 
-```{r}
-as.character(corpus_clean[[1]])
-```
-
-```{r}
 df_corpus <- data.frame(text = unlist(sapply(corpus_clean, `[`, "content")), stringsAsFactors = F)
 df_corpus <- df_corpus %>% mutate(doc_id = 1:n())
-```
 
-```{r}
 statements_clean <- statements %>% 
   mutate(cleaned_text = df_corpus$text)
 ```
 
 ## TF-IDF
 
-(...)
+Using term frequency–inverse document frequency statistic we proceded to further analyze the statements to find these words that carry more information than the others.
 
 ```{r}
 statements_words <- statements_clean %>%
@@ -273,16 +258,15 @@ statements_words <- statements_clean %>%
                       unnest_tokens(word_count, cleaned_text) %>%
                       count(year, word_count, sort = T)
 
-statements_words
-```
-
-```{r}
 statements_words <- statements_words %>%
                       bind_tf_idf(word_count, year, n) %>% 
                       arrange(desc(tf_idf))
 
 statements_words
 ```
+
+Using the computed statistic, we visualised the most important words per year.
+(...) które najpopularniejsze
 
 ```{r, fig.height=15, warning=FALSE, message=FALSE}
 pd = statements_words %>%
@@ -294,7 +278,7 @@ pd = statements_words %>%
         arrange(year, tf_idf) %>%
         mutate(order = row_number()) 
 
-ggplot(pd, aes(order, tf_idf, fill = year)) +
+ggplot(pd, aes(order, tf_idf, fill = tf_idf)) +
     geom_bar(show.legend = FALSE, stat = "identity") +
     labs(x = NULL, y = "tf-idf") +
     facet_wrap(~year, ncol = 3, scales = "free") +
@@ -303,15 +287,17 @@ ggplot(pd, aes(order, tf_idf, fill = year)) +
                        expand = c(0,0)) +
     scale_y_continuous(expand = c(0,0)) +
     coord_flip() +
-    theme_minimal()
+    theme_minimal() +
+    scale_fill_viridis_c(direction=-1)
 ```
-
 
 
 ## Wordclouds
 
+We also presented the frequency of words using wordclouds. The bigger the word the higher the frequency. 
+
 ```{r}
-library(wordcloud)
+library(wordcloud2)
 dtm <- TermDocumentMatrix(corpus_clean)
 m <- as.matrix(dtm)
 v <- sort(rowSums(m), decreasing=TRUE)
@@ -319,11 +305,9 @@ d <- data.frame(word = names(v), freq=v)
 head(d, 10)
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 set.seed(1234)
-wordcloud(words = d$word, freq = d$freq, min.freq = 1,
-          max.words=50, random.order=FALSE, rot.per=0.35, 
-          colors=viridis(10))
+wordcloud2(d %>% arrange(desc(freq)) %>% head(100), color=viridis(100, direction = -1), shape='circle', size=0.2, minRotation = -pi/2, ellipticity = .8)
 ```
 
 
@@ -473,7 +457,7 @@ word_cors <- word_cors %>% filter(correlation<=1)
 ```
 
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(igraph)
 library(ggraph)
 word_cors %>%
