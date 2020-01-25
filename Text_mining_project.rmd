@@ -139,7 +139,7 @@ df_corpus <- df_corpus %>% mutate(doc_id = 1:n())
 df_corpus$text[1]
 ```
 
-In the next steps, we append statements data frame with cleaned text. We also count number of words occuring in the original statement and in the cleaned statement. 
+In the next steps, we append statements data frame with cleaned text. We also count number of words occuring in the original statement and in the cleaned statement.
 
 ```{r}
 statements_clean <- statements %>% 
@@ -203,7 +203,6 @@ library(ggplot2)
 library(dplyr)
 library(lubridate)
 
-
 word_counts_zipf <- statements_clean_count %>%
   mutate(year = year(Date)) %>% 
   unnest_tokens(word_count, cleaned_text) %>%
@@ -259,34 +258,17 @@ df_corpus <- data.frame(text = unlist(sapply(corpus_clean, `[`, "content")), str
 df_corpus <- df_corpus %>% mutate(doc_id = 1:n())
 ```
 
-
 ```{r}
 statements_clean <- statements %>% 
   mutate(cleaned_text = df_corpus$text)
 ```
-
-```{r}
-# clened_text
-count_cleaned_word <- statements_clean %>%
-  unnest_tokens(word_count, cleaned_text) %>%
-  count(ID, word_count, sort = T) %>% 
-  group_by(ID) %>%
-  summarize(word_cleaned_count = sum(n))
-
-statements_clean_count <- left_join(statements_clean, count_cleaned_word, by = 'ID')
-```
-
-```{r}
-statements_clean_count
-```
-
 
 ## TF-IDF
 
 (...)
 
 ```{r}
-statements_words <- statements_clean_count %>%
+statements_words <- statements_clean %>%
                       mutate(year = year(Date)) %>% 
                       unnest_tokens(word_count, cleaned_text) %>%
                       count(year, word_count, sort = T)
@@ -348,11 +330,32 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
 
 ## Associations and network analysis
 
+```{r}
+austen_section_words <- austen_books() %>%
+  filter(book == "Pride & Prejudice") %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% stop_words$word)
+
+austen_section_words
+```
 
 
 
 
+```{r}
+library(widyr)
 
+# count words co-occuring within sections
+word_pairs <- austen_section_words %>%
+  pairwise_count(word, section, sort = TRUE)
+
+word_pairs
+```
+
+```{r}
+word_pairs %>%
+  filter(item1 == "darcy")
+```
 
 
 
@@ -368,12 +371,12 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
 
 ```{r}
 # Lemmatization
-statements_final$lemma_text <- lemmatize_strings(statements_final$cleaned_text)
+statements_clean$lemma_text <- lemmatize_strings(statements_clean$cleaned_text)
 ```
 
 ```{r}
 # Tokenization
-tokens <- statements_final %>%
+tokens <- statements_clean %>%
   unnest_tokens(word, lemma_text) 
 ```
 
@@ -385,9 +388,9 @@ tokens <- statements_final %>%
 library(topicmodels)
 library(tidytext)
 
-tdm <- DocumentTermMatrix(corpus_clean) 
-ap_lda <- LDA(tdm, k = 5, control = list(seed = 1234))
-ap_topics <- tidy(ap_lda, matrix = "beta")
+tdm_tm <- DocumentTermMatrix(corpus_clean) 
+ap_lda_tm <- LDA(tdm_tm, k = 5, control = list(seed = 1234))
+ap_topics_tm <- tidy(ap_lda_tm, matrix = "beta")
 ```
 
 ```{r}
