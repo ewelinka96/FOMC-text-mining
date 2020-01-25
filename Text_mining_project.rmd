@@ -328,44 +328,6 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
 
 
 
-## Associations and network analysis
-
-```{r}
-austen_section_words <- austen_books() %>%
-  filter(book == "Pride & Prejudice") %>%
-  unnest_tokens(word, text) %>%
-  filter(!word %in% stop_words$word)
-
-austen_section_words
-```
-
-
-
-
-```{r}
-library(widyr)
-
-# count words co-occuring within sections
-word_pairs <- austen_section_words %>%
-  pairwise_count(word, section, sort = TRUE)
-
-word_pairs
-```
-
-```{r}
-word_pairs %>%
-  filter(item1 == "darcy")
-```
-
-
-
-
-
-
-
-
-
-
 
 ## Sentiment analysis
 
@@ -389,8 +351,8 @@ library(topicmodels)
 library(tidytext)
 
 tdm_tm <- DocumentTermMatrix(corpus_clean) 
-ap_lda_tm <- LDA(tdm_tm, k = 5, control = list(seed = 1234))
-ap_topics_tm <- tidy(ap_lda_tm, matrix = "beta")
+ap_lda <- LDA(tdm_tm, k = 5, control = list(seed = 1234))
+ap_topics <- tidy(ap_lda, matrix = "beta")
 ```
 
 ```{r}
@@ -480,6 +442,51 @@ topic_density <- ggplot(statements_topics, aes(x=Date)) +
 
 ggplotly(topic_density)
 ```
+
+
+## Word correlation analysis
+
+```{r}
+by_chapter_word <- data.frame(lapply(by_chapter_word, as.character), stringsAsFactors=FALSE)
+```
+
+```{r}
+# install.packages("widyr")
+library(widyr)
+```
+
+```{r}
+# count words co-occuring within sections
+word_pairs <- by_chapter_word %>%
+  pairwise_count(word, ID, sort = TRUE)
+
+word_pairs
+```
+
+```{r}
+word_cors <- by_chapter_word %>%
+  group_by(word) %>%
+  filter(n() >= 107) %>%
+  pairwise_cor(word, ID, sort = TRUE)
+
+word_cors <- word_cors %>% filter(correlation<=1)
+```
+
+
+```{r}
+library(igraph)
+library(ggraph)
+word_cors %>%
+  filter(correlation > .65) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation), show.legend = FALSE) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_label(aes(label = name), repel = TRUE) +
+  theme_void()
+```
+
+
 
 
 
