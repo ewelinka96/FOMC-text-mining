@@ -29,7 +29,7 @@ library(SentimentAnalysis)
 
 ## Introduction
 
-The main objective of this paper is to analyse the Federal Open Market Commitee statements using text mining methods and tools provided by R. We start with basic analysis of (....)
+The main objective of this paper is to analyse the Federal Open Market Commitee statements using text mining methods and tools provided by R. We start with basic analysis of the length of each statement, through word counts, sentiment analysis and topic modelling.
 
 ## What is Federal Open Market Committee?
 
@@ -213,12 +213,13 @@ statements_words
 
 ```{r}
 statements_words <- statements_words %>%
-  bind_tf_idf(word_count, year, n)
+  bind_tf_idf(word_count, year, n) %>% 
+  arrange(desc(tf_idf))
 
 statements_words
 ```
 
-```{r, fig.height=15}
+```{r, fig.height=15, warning=FALSE, message=FALSE}
 pd = statements_words %>%
   arrange(desc(tf_idf)) %>%
   mutate(word = factor(word_count, levels = rev(unique(word_count)))) %>% 
@@ -301,7 +302,7 @@ tokens <- statements_final %>%
 library(topicmodels)
 library(tidytext)
 
-tdm = DocumentTermMatrix(corpus_clean) 
+tdm <- DocumentTermMatrix(corpus_clean) 
 ap_lda <- LDA(tdm, k = 5, control = list(seed = 1234))
 ap_topics <- tidy(ap_lda, matrix = "beta")
 ```
@@ -316,10 +317,12 @@ ap_top_terms <- ap_topics %>%
 ap_top_terms %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(term, beta, fill = factor(topic))) +
-  geom_col(show.legend = FALSE) +
+  geom_col(show.legend = FALSE, fill = viridis(25)) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip() +
-  scale_x_reordered()
+  labs(y="Value of beta parameter", x="") +
+  scale_x_reordered() +
+  theme_minimal()
 ```
 
 
@@ -343,9 +346,7 @@ chapters_dtm <- word_counts %>%
 
 chapters_lda <- LDA(chapters_dtm, k = 4, control = list(seed = 1234))
 
-
 chapters_lda_td <- tidy(chapters_lda)
-
 
 chapters_lda_gamma <- tidy(chapters_lda, matrix = "gamma")
 ```
@@ -373,24 +374,18 @@ statements_topics = statements_topics[ , !(names(statements_topics) %in% drops)]
 
 ```{r}
 library(viridis)
-dupa <- ggplot(statements_topics, aes(x=Date)) + 
-  geom_line(aes(y=topic1), fill =viridis(10)[2]) +
-  geom_line(aes(y=topic2),  color=viridis(10)[5]) +
-  geom_line(aes(y=topic3),  color=viridis(10)[10]) +
-  geom_line(aes(y=topic4))
+topic_density <- ggplot(statements_topics, aes(x=Date)) + 
+  geom_line(aes(y=topic1), color=viridis(10)[2]) +
+  geom_line(aes(y=topic2), color=viridis(10)[4]) +
+  geom_line(aes(y=topic3), color=viridis(10)[6]) +
+  geom_line(aes(y=topic4), color=viridis(10)[8]) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  theme_minimal()
 
-ggplotly(dupa)
+ggplotly(topic_density)
 ```
 
 
-```{r}
-ggplot(statements_topics) + 
-  geom_density( aes(x = topic1, y = ..scaled..), fill = "red", alpha = 0.5) +
-  geom_density( aes(x = topic2, y = ..scaled..), fill = "green", alpha = 0.5) +
-  geom_density( aes(x = topic3, y = ..scaled..), fill = "blue", alpha = 0.5) +
-  geom_density( aes(x = topic4, y = ..scaled..), fill = "yellow", alpha = 0.5) 
-
-```
 
 
 [^fomc]: Source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
