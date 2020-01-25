@@ -46,8 +46,8 @@ We sourced the data by scraping the statements from the Federal Reserve official
 ```{r}
 # Loading scrapped statements
 # DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
-# DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
-DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
+DATA_DIR <- "~/FOMC-text-mining/Statements"
+# DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
@@ -201,8 +201,7 @@ ggplotly(myplot)
 ```{r, include=False}
 library(ggplot2)
 library(dplyr)
-# library(themes)
-library(gganimate)
+library(lubridate)
 
 
 word_counts_zipf <- statements_clean_count %>%
@@ -221,15 +220,64 @@ word_count <- word_count %>%
 ```
 
 ```{r}
- ggplot(word_count, aes(x = rank, y = count)) + 
-geom_point(aes(color = "observed")) +
- theme_bw() +
-labs(x = "rank", y = "count", title = "Zipf's law visualization") +
- scale_colour_manual(name = "Word count", values=c("observed" = "black")) +
- theme(legend.position = "top") +
-   geom_vline(xintercept = 40) +
-   geom_vline(xintercept = 300)
+word_count
+```
 
+
+```{r}
+ p1 <- ggplot(word_count, 
+              aes(x = rank, y = count, 
+                  color = rank,
+                  text = paste("Word: ", word, "<br>Count: ", count))) + 
+          geom_point() +
+          labs(x = "rank", y = "count", title = "Zipf's law visualization") +
+          scale_color_viridis_c() +
+          geom_vline(xintercept = 10) +
+          geom_vline(xintercept = 300) +
+          theme_minimal() +
+          theme(legend.position = "none")
+ggplotly(p1, tooltip = "text")
+```
+
+
+```{r}
+large_zipf <- as.vector(word_count$word[1:10])
+small_zipf <- as.vector(word_count$word[300:1174])
+```
+
+```{r}
+corpus_clean <- corpus_clean %>% tm_map(removeWords, large_zipf)
+corpus_clean <- corpus_clean %>% tm_map(removeWords, small_zipf)
+```
+
+```{r}
+as.character(corpus_clean[[1]])
+```
+
+```{r}
+df_corpus <- data.frame(text = unlist(sapply(corpus_clean, `[`, "content")), stringsAsFactors = F)
+df_corpus <- df_corpus %>% mutate(doc_id = 1:n())
+```
+
+
+```{r}
+statements_clean <- statements %>% 
+  mutate(cleaned_text = df_corpus$text)
+```
+
+```{r}
+# clened_text
+count_cleaned_word <- statements_clean %>%
+  unnest_tokens(word_count, cleaned_text) %>%
+  count(ID, word_count, sort = T) %>% 
+  group_by(ID) %>%
+  summarize(word_cleaned_count = sum(n))
+
+statements_clean_count <- left_join(statements_clean, count_cleaned_word, by = 'ID')
+```
+
+```{r}
+statements_clean_count
 ```
 
 
@@ -238,43 +286,42 @@ labs(x = "rank", y = "count", title = "Zipf's law visualization") +
 (...)
 
 ```{r}
-library(lubridate)
 statements_words <- statements_clean_count %>%
-  mutate(year = year(Date)) %>% 
-  unnest_tokens(word_count, cleaned_text) %>%
-  count(year, word_count, sort = T)
+                      mutate(year = year(Date)) %>% 
+                      unnest_tokens(word_count, cleaned_text) %>%
+                      count(year, word_count, sort = T)
 
 statements_words
 ```
 
 ```{r}
 statements_words <- statements_words %>%
-  bind_tf_idf(word_count, year, n) %>% 
-  arrange(desc(tf_idf))
+                      bind_tf_idf(word_count, year, n) %>% 
+                      arrange(desc(tf_idf))
 
 statements_words
 ```
 
 ```{r, fig.height=15, warning=FALSE, message=FALSE}
 pd = statements_words %>%
-  arrange(desc(tf_idf)) %>%
-  mutate(word = factor(word_count, levels = rev(unique(word_count)))) %>% 
-  group_by(year) %>% 
-  top_n(10) %>% 
-  ungroup() %>%
-  arrange(year, tf_idf) %>%
-  mutate(order = row_number()) 
+        arrange(desc(tf_idf)) %>%
+        mutate(word = factor(word_count, levels = rev(unique(word_count)))) %>% 
+        group_by(year) %>% 
+        top_n(10) %>% 
+        ungroup() %>%
+        arrange(year, tf_idf) %>%
+        mutate(order = row_number()) 
 
 ggplot(pd, aes(order, tf_idf, fill = year)) +
-  geom_bar(show.legend = FALSE, stat = "identity") +
-  labs(x = NULL, y = "tf-idf") +
-  facet_wrap(~year, ncol = 3, scales = "free") +
-  scale_x_continuous(breaks = pd$order, 
-                     labels = pd$word,
-                     expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0)) +
-  coord_flip() +
-  theme_minimal()
+    geom_bar(show.legend = FALSE, stat = "identity") +
+    labs(x = NULL, y = "tf-idf") +
+    facet_wrap(~year, ncol = 3, scales = "free") +
+    scale_x_continuous(breaks = pd$order, 
+                       labels = pd$word,
+                       expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
+    coord_flip() +
+    theme_minimal()
 ```
 
 
@@ -346,14 +393,14 @@ ap_topics <- tidy(ap_lda, matrix = "beta")
 ```{r}
 ap_top_terms <- ap_topics %>%
   group_by(topic) %>%
-  top_n(5, beta) %>%
+  top_n(8, beta) %>%
   ungroup() %>%
   arrange(topic, -beta)
 
 ap_top_terms %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(term, beta, fill = factor(topic))) +
-  geom_col(show.legend = FALSE, fill = viridis(25)) +
+  geom_col(show.legend = FALSE, fill = viridis(40)) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip() +
   labs(y="Value of beta parameter", x="") +
@@ -380,7 +427,7 @@ word_counts <- by_chapter_word %>%
 chapters_dtm <- word_counts %>%
   cast_dtm(ID, word, n)
 
-chapters_lda <- LDA(chapters_dtm, k = 4, control = list(seed = 1234))
+chapters_lda <- LDA(chapters_dtm, k = 5, control = list(seed = 1234))
 
 chapters_lda_td <- tidy(chapters_lda)
 
@@ -392,21 +439,29 @@ topic_1 = chapters_lda_gamma %>% filter(., topic=='1')
 topic_2 = chapters_lda_gamma %>% filter(., topic=='2')
 topic_3 = chapters_lda_gamma %>% filter(., topic=='3')
 topic_4 = chapters_lda_gamma %>% filter(., topic=='4')
+topic_5 = chapters_lda_gamma %>% filter(., topic=='5')
+# topic_6 = chapters_lda_gamma %>% filter(., topic=='6')
 topic_1 = topic_1 %>% rename('topic1' = 'gamma')
 topic_2 = topic_2 %>% rename('topic2' = 'gamma')
 topic_3 = topic_3 %>% rename('topic3' = 'gamma')
 topic_4 = topic_4 %>% rename('topic4' = 'gamma')
+topic_5 = topic_5 %>% rename('topic5' = 'gamma')
+# topic_6 = topic_6 %>% rename('topic6' = 'gamma')
 
 
 statements_topics = merge(statements_clean, topic_1, by.x = "ID", by.y = "document")
 statements_topics = merge(statements_topics, topic_2, by.x = "ID", by.y = "document")
 statements_topics = merge(statements_topics, topic_3, by.x = "ID", by.y = "document")
 statements_topics = merge(statements_topics, topic_4, by.x = "ID", by.y = "document")
+statements_topics = merge(statements_topics, topic_5, by.x = "ID", by.y = "document")
+# statements_topics = merge(statements_topics, topic_6, by.x = "ID", by.y = "document")
 
 drops <- c("topic.x","topic.y")
 statements_topics = statements_topics[ , !(names(statements_topics) %in% drops)]
 
 ```
+
+
 
 ```{r}
 library(viridis)
@@ -415,6 +470,8 @@ topic_density <- ggplot(statements_topics, aes(x=Date)) +
   geom_line(aes(y=topic2), color=viridis(10)[4]) +
   geom_line(aes(y=topic3), color=viridis(10)[6]) +
   geom_line(aes(y=topic4), color=viridis(10)[8]) +
+  geom_line(aes(y=topic5), color=viridis(10)[9]) +
+  # geom_line(aes(y=topic6), color=viridis(10)[10]) +  
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
   theme_minimal()
 
