@@ -54,9 +54,7 @@ We sourced the data by scraping the statements from the Federal Reserve official
 
 ```{r}
 # Loading scrapped statements
-# DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
 DATA_DIR <- "~/FOMC-text-mining/Statements"
-# DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
@@ -102,7 +100,7 @@ statements_all <- as.vector(statements$Text)
 length(statements_all) 
 ```
 
-The next step was concerting the dataset into volatile corpora which is a handful form in the following operations. Below can be seen an example statement before any text preprocessing operations applied.
+The next step was converting the dataset into volatile corpora which is a handful form in the following operations. Below can be seen an example statement before any text preprocessing operations applied.
 
 ```{r}
 (corpus_all <- VCorpus(VectorSource(statements_all)))
@@ -312,7 +310,7 @@ ggplot(pd, aes(order, tf_idf, fill = tf_idf)) +
 
 ## Wordclouds
 
-We also presented the frequency of words using wordclouds. The bigger and lighter the word the higher the frequency. This is much more visual and pleasant to interpret then the table. Based on the cloud below it occured that the most frequent words overall are *percent*, *policy*, *funds*, *financial* and *range*.
+We also presented the frequency of words using wordclouds. The bigger and lighter the word the higher the frequency. This is much more visual and pleasant to interpret then the table. Based on the cloud below it occured that the most frequent words overall are *securities*, *conditions*, *funds*, *financial* and *range*.
 
 ```{r}
 dtm <- TermDocumentMatrix(corpus_clean)
@@ -324,7 +322,7 @@ head(d, 10)
 
 ```{r, warning=FALSE, message=FALSE}
 set.seed(1234)
-wordcloud2(d %>% arrange(desc(freq)) %>% head(100), color=viridis(100, direction = -1), shape='circle', size=0.2, minRotation = -pi/2, ellipticity = .8)
+wordcloud2(d %>% arrange(desc(freq)) %>% head(100), color=viridis(100, direction = -1), shape='circle', size=0.2, minRotation = -pi/2, ellipticity = .8, )
 ```
 
 ## Sentiment analysis
@@ -408,9 +406,9 @@ ggplotly(sentiment_plot, tooltip = "text") %>%
 
 Topic modelling is unsupervised method for identifying topics in documents. LDA is a popular method for topic modelling. In this approach, it is assumed that every document is a combination of few topics and every topic is combination of words. What is important, is fact that one word can be a part of few topics, so topics can be somehow similiar to each other.
 
-In LDA, we have to specify number of topics we want to obtain. I addition to that we can adjust two parameters alpha ane beta which corresponds to document-topic density and topic-word density.
+In LDA, we have to specify number of topics we want to obtain. In addition to that we can adjust two parameters alpha and beta which correspond to document-topic density and topic-word density.
 
-```{r,include=FALSE}
+```{r, warning=FALSE, message=FALSE}
 tdm_tm <- DocumentTermMatrix(corpus_clean) 
 lda <- LDA(tdm_tm, k = 5, control = list(seed = 1234))
 lda_topics <- tidy(lda, matrix = "beta")
@@ -434,9 +432,9 @@ lda_top_terms %>%
   theme_minimal()
 ```
 
-In our case we choose 5 topics and based on graphs it is visible that topic number one, three and five can be similar due to the word "securities"
+In our case we choose 5 topics and based on graphs it is visible that topic number one, three and five can be similar due to the word "securities".
 
-```{r, include=FALSE}
+```{r, warning=FALSE, message=FALSE}
 by_statement <- statements_clean %>%
   group_by(ID)
  
@@ -459,7 +457,7 @@ statements_lda_gamma <- tidy(statements_lda, matrix = "gamma")
 
 
 
-```{r, include=FALSE}
+```{r, warning=FALSE, message=FALSE}
 topic_1 = statements_lda_gamma %>% filter(., topic=='1')
 topic_2 = statements_lda_gamma %>% filter(., topic=='2')
 topic_3 = statements_lda_gamma %>% filter(., topic=='3')
@@ -501,7 +499,7 @@ ggplotly(topic_density)
 
 ## Word correlation analysis
 
-At the end we were curious which words are mostly correlated. To do so, we create graphs of words, if the words are connected it means that correlation is above given threshold, in our case 65%. It comes out that we have one big graph that are connected together and few pairs of words.
+At the end we were curious which words are mostly correlated. To do so, we create graphs of words, if the words are connected it means that correlation is above given threshold, in our case 65%. It comes out that we have one big graph with nodes that are connected together and few pairs of words.
 
 ```{r}
 by_statement_word <- data.frame(lapply(by_statement_word, as.character), stringsAsFactors=FALSE)
@@ -535,12 +533,6 @@ word_cors %>%
   geom_node_label(aes(label = name), repel = TRUE) +
   theme_void()
 ```
-
-## Conclusions
-
-
-
-
 
 [^fomc]: Source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
 
