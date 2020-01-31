@@ -54,8 +54,8 @@ We sourced the data by scraping the statements from the Federal Reserve official
 
 ```{r}
 # Loading scrapped statements
-DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
-# DATA_DIR <- "~/FOMC-text-mining/Statements"
+# DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
+DATA_DIR <- "~/FOMC-text-mining/Statements"
 # DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
@@ -416,7 +416,7 @@ lda <- LDA(tdm_tm, k = 5, control = list(seed = 1234))
 lda_topics <- tidy(lda, matrix = "beta")
 ```
 
-```{r,include=FALSE}
+```{r}
 lda_top_terms <- lda_topics %>%
   group_by(topic) %>%
   top_n(8, beta) %>%
