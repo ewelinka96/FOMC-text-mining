@@ -398,8 +398,10 @@ sentiment_plot <- ggplot(statement_sentiment, aes(as.factor(ID),
   scale_fill_viridis_c(direction=-1) +
   theme_minimal()
 
+sentiment_plot
+
 ggplotly(sentiment_plot, tooltip = "text") %>% 
-  layout(autosize = F, width = 600, height = 800)
+  layout(autosize = F, width = 600, height = 1200)
 ```
 
 ## Topic modelling
