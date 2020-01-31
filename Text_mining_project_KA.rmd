@@ -55,8 +55,8 @@ We sourced the data by scraping the statements from the Federal Reserve official
 ```{r}
 # Loading scrapped statements
 # DATA_DIR <- "C:/Users/KAndr/OneDrive/Studia/II rok I semestr/Text mining/Text mining project/Statements/"
-DATA_DIR <- "~/FOMC-text-mining/Statements"
-# DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
+# DATA_DIR <- "~/FOMC-text-mining/Statements"
+DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
@@ -535,11 +535,6 @@ word_cors %>%
   geom_node_label(aes(label = name), repel = TRUE) +
   theme_void()
 ```
-
-## Conclusions
-
-
-
 
 
 [^fomc]: Source: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
