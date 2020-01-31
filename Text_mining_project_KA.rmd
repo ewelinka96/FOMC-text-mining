@@ -54,7 +54,7 @@ We sourced the data by scraping the statements from the Federal Reserve official
 
 ```{r}
 # Loading scrapped statements
-DATA_DIR <- "~/FOMC-text-mining/Statements"
+DATA_DIR <- "~/Desktop/FOMC-text-mining/Statements"
 
 fomc_2006 <- readtext(paste0(DATA_DIR, "/2006/*"))
 fomc_2007 <- readtext(paste0(DATA_DIR, "/2007/*"))
@@ -386,7 +386,7 @@ statement_sentiment <- tidy_statement %>%
   mutate(sentiment = positive - negative)
 ```
 
-```{r fig.height=10, fig.width=5, warning=FALSE, message=FALSE}
+```{r fig.height=10, fig.width=6, warning=FALSE, message=FALSE}
 sentiment_plot <- ggplot(statement_sentiment, aes(as.factor(ID), 
                                        sentiment, 
                                        fill = sentiment, 
@@ -398,10 +398,8 @@ sentiment_plot <- ggplot(statement_sentiment, aes(as.factor(ID),
   scale_fill_viridis_c(direction=-1) +
   theme_minimal()
 
-sentiment_plot
-
 ggplotly(sentiment_plot, tooltip = "text") %>% 
-  layout(autosize = F, width = 600, height = 1200)
+  layout(autosize = F, width = 650, height = 800)
 ```
 
 ## Topic modelling
